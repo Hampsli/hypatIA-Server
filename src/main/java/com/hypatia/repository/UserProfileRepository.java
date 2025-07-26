@@ -368,7 +368,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
      * 
      * @return List of caregiver statistics by age
      */
-    @Query("SELECT " +
+    /*@Query("SELECT " +
            "CASE WHEN u.age BETWEEN 16 AND 25 THEN '16-25' " +
            "     WHEN u.age BETWEEN 26 AND 35 THEN '26-35' " +
            "     WHEN u.age BETWEEN 36 AND 45 THEN '36-45' " +
@@ -383,7 +383,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
            "     WHEN u.age BETWEEN 46 AND 55 THEN '46-55' " +
            "     ELSE '55+' END, up.isCaregiver " +
            "ORDER BY ageGroup, up.isCaregiver")
-    List<Object[]> getCaregiverStatsByAgeGroup();
+    List<Object[]> getCaregiverStatsByAgeGroup();*/
 
     /**
      * Finds profiles for salary analysis.
