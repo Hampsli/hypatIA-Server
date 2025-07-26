@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientException;
-import org.springframework.http.HttpStatus; // Keep this import for HttpStatus enum constants
 import org.springframework.http.HttpStatusCode; // Keep this import for the predicate type
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +51,7 @@ public class AIService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // These values are now directly injected from application properties
     @Value("${hypatia.ai.fastapi.url}")
     private String fastapiBaseUrl;
 
@@ -61,6 +61,13 @@ public class AIService {
     @Value("${hypatia.ai.request-timeout-seconds:30}")
     private int requestTimeoutSeconds;
 
+    /**
+     * Constructor for AIService, autowiring WebClient.Builder and
+     * directly injecting FastAPI configuration values.
+     * @param webClientBuilder Spring's WebClient.Builder.
+     * @param fastapiBaseUrl Base URL of the FastAPI service.
+     * @param requestTimeoutSeconds Timeout for requests in seconds.
+     */
     @Autowired
     public AIService(WebClient.Builder webClientBuilder,
                      @Value("${hypatia.ai.fastapi.url}") String fastapiBaseUrl,
@@ -92,7 +99,7 @@ public class AIService {
         long startTime = System.currentTimeMillis();
         String requestPayloadForFastAPI = null;
         String responsePayloadFromFastAPI = null;
-        boolean isCachedResponse = false; // Always false when this method runs (cache miss)
+        boolean isCachedResponse = false; // This will always be false when this method is executed (i.e., on a cache miss)
 
         try {
             Map<String, String> fastapiRequestBody = Map.of("text", inputText);
@@ -102,25 +109,26 @@ public class AIService {
                     .uri(fastapiAnalyzePath)
                     .bodyValue(requestPayloadForFastAPI)
                     .retrieve()
-                    // FIX: Use a lambda with getRawStatusCode() for compatibility across Spring versions
-                    .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
+                    // Use status.value() for direct integer comparison (most compatible across Spring versions)
+                    .onStatus(status -> status.value() >= 400 && status.value() < 500, clientResponse ->
                             clientResponse.bodyToMono(String.class).map(body -> {
                                 log.error("FastAPI 4xx client error: {}", body);
-                                return new AIServiceException("Error de cliente de FastAPI: " + body + " Estado: " + clientResponse.statusCode().value()); // Use .value() for int
+                                return new AIServiceException("Error de cliente de FastAPI: " + body + " Estado: " + clientResponse.statusCode().value());
                             }))
-                    // FIX: Use a lambda with getRawStatusCode() for compatibility across Spring versions
-                    .onStatus(HttpStatusCode::is5xxServerError, clientResponse ->
+                    // Use status.value() for direct integer comparison (most compatible across Spring versions)
+                    .onStatus(status -> status.value() >= 500 && status.value() < 600, clientResponse ->
                             clientResponse.bodyToMono(String.class).map(body -> {
                                 log.error("FastAPI 5xx server error: {}", body);
-                                return new AIServiceException("Error de servidor de FastAPI: " + body + " Estado: " + clientResponse.statusCode().value()); // Use .value() for int
+                                return new AIServiceException("Error de servidor de FastAPI: " + body + " Estado: " + clientResponse.statusCode().value());
                             }))
                     .bodyToMono(String.class)
                     .timeout(Duration.ofSeconds(requestTimeoutSeconds))
                     .block();
 
+            // Attempt to deserialize the response content into a Map, then wrap it in AIResponseDto
             AIResponseDto aiResponse = new AIResponseDto(objectMapper.readValue(responsePayloadFromFastAPI, Map.class));
 
-            log.info("Análisis AI de tipo '{}' exitoso (llamada a API) para el usuario {}. Longitud de respuesta: {} caracteres.", analysisType, userId, responsePayloadFromFastAPI.length());
+            log.info("Análisis AI de tipo '{}' exitoso (llamada a API) para el el usuario {}. Longitud de respuesta: {} caracteres.", analysisType, userId, responsePayloadFromFastAPI.length());
             return aiResponse;
 
         } catch (JsonProcessingException | WebClientException e) {
@@ -132,13 +140,24 @@ public class AIService {
         } finally {
             long duration = System.currentTimeMillis() - startTime;
             String cacheKey = generateHash(userId, analysisType, inputText);
-            logAIInteraction(user, analysisType, requestPayloadForFastAPI, responsePayloadFromFastAPI, cacheKey, isCachedResponse, duration);
+            // Log the interaction with isCachedResponse set to false (because this path means it was an API call)
+            logAIInteraction(user, analysisType, requestPayloadForFastAPI, responsePayloadFromFastAPI, cacheKey, false, duration);
         }
     }
 
 
     // --- Private Helper Methods ---
 
+    /**
+     * Generates a unique SHA-256 hash for caching purposes.
+     * This hash is based on the request's core components: user ID, analysis type, and the exact input text.
+     * This method must be static for use in @Cacheable's 'key' expression.
+     *
+     * @param userId The ID of the user.
+     * @param analysisType The type of analysis.
+     * @param inputText The exact text string sent to FastAPI.
+     * @return A SHA-256 hash string representing the unique request.
+     */
     public static String generateHash(Long userId, String analysisType, String inputText) {
         try {
             String rawKey = userId + ":" + analysisType + ":" + inputText;
@@ -155,20 +174,36 @@ public class AIService {
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
             log.error("Error generating cache key hash (SHA-256 not available): {}", e.getMessage(), e);
+            // Fallback to a less robust hash or throw a runtime exception if key generation is critical
             return String.valueOf(Objects.hash(userId, analysisType, inputText));
         }
     }
 
+    /**
+     * Logs the AI interaction to the database.
+     *
+     * @param user The User entity associated with the interaction.
+     * @param interactionType The type of AI analysis requested.
+     * @param requestPayload The raw JSON string sent to FastAPI.
+     * @param responsePayload The raw JSON string received from FastAPI.
+     * @param cacheKey The unique key used for caching this interaction.
+     * @param isCachedResponse True if this response was served from cache, false if it was a fresh API call.
+     * @param duration The total duration of the AI interaction in milliseconds.
+     */
     private void logAIInteraction(User user, String interactionType, String requestPayload,
                                   String responsePayload, String cacheKey, boolean isCachedResponse, long duration) {
         try {
+            // Note: `isCachedResponse` here indicates if the *current call path* was a cache hit or miss.
+            // When @Cacheable intercepts and serves from cache, this method is not called.
+            // When @Cacheable misses, this method is called, and `isCachedResponse` will be false.
             AiInteraction interaction = new AiInteraction(user, interactionType,
                     requestPayload, responsePayload,
-                    cacheKey, isCachedResponse);
+                    cacheKey, isCachedResponse); // Store the actual cache status of this interaction
             aiInteractionRepository.save(interaction);
             log.debug("AI interaction logged successfully for user {}: type {}, cached: {}", user.getId(), interactionType, isCachedResponse);
         } catch (Exception e) {
             log.error("Failed to log AI interaction for user {}: {}", user.getId(), e.getMessage(), e);
+            // Don't re-throw, as logging failure shouldn't block the main request
         }
     }
 
