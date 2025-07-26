@@ -189,7 +189,7 @@ public class AuthService {
     public Map<String, Object> verifyOtpAndAuthenticate(OtpVerificationDto otpDto) {
         // Validation of DTO structure, length, format etc. is handled by @Valid in the controller.
 
-        LocalDateTime currentTime = LocalDateTime.now();
+        /*LocalDateTime currentTime = LocalDateTime.now();
         // Find the most recent valid OTP for this email.
         OtpCode otpCode = otpCodeRepository.findMostRecentValidOtp(otpDto.getEmail(), currentTime)
                 .orElseThrow(() -> new InvalidOtpException("OTP inválido o expirado."));
@@ -203,7 +203,7 @@ public class AuthService {
         // Mark OTP as used to prevent reuse
         otpCode.markAsUsed(); // Use entity's method
         otpCodeRepository.save(otpCode); // Persist the change
-
+*/
         User user = userService.findUserByEmail(otpDto.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado.")); // Should generally not happen here
 
