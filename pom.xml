@@ -191,6 +191,10 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <mainClass>com.hypatia.HypatiaApplication</mainClass>
+                        <layout>JAR</layout>
+                    </configuration>
                     <executions>
                         <execution>
                             <goals>
