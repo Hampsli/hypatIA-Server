@@ -256,9 +256,7 @@ public class UserService implements UserDetailsService {
         if (profileDto.getAgeRange() != null) { // Correctly update ageRange (String)
             profile.setAgeRange(profileDto.getAgeRange());
         }
-        if (profileDto.getCurrentRole() != null) {
-            profile.setCurrentRole(profileDto.getCurrentRole());
-        }
+
 
         // Rest of UserProfileDto mappings
         if (profileDto.getGender() != null) {
@@ -339,7 +337,7 @@ public class UserService implements UserDetailsService {
         // Map name, ageRange, currentRole from UserProfile to UserProfileDto
         dto.setName(profile.getName());
         dto.setAgeRange(profile.getAgeRange()); // Use getAgeRange()
-        dto.setCurrentRole(profile.getCurrentRole());
+
 
         // Rest of UserProfile to DTO mappings
         dto.setGender(profile.getGender());
@@ -376,7 +374,6 @@ public class UserService implements UserDetailsService {
         // Check for name, ageRange, currentRole as mandatory in UserProfile
         return profile.getName() != null && !profile.getName().isEmpty() &&
                 profile.getAgeRange() != null && !profile.getAgeRange().isEmpty() && // Check ageRange
-                profile.getCurrentRole() != null && !profile.getCurrentRole().isEmpty() &&
                 profile.getGender() != null && !profile.getGender().isEmpty() &&
                 profile.getInitialEducation() != null && !profile.getInitialEducation().isEmpty() &&
                 profile.getYearsOfExperience() != null && !profile.getYearsOfExperience().isEmpty() &&
@@ -413,7 +410,7 @@ public class UserService implements UserDetailsService {
         // Updated checks for name, ageRange, currentRole
         if (profile.getName() != null && !profile.getName().isEmpty()) completedImportantFields++; else missingFields.add("name");
         if (profile.getAgeRange() != null && !profile.getAgeRange().isEmpty()) completedImportantFields++; else missingFields.add("ageRange");
-        if (profile.getCurrentRole() != null && !profile.getCurrentRole().isEmpty()) completedImportantFields++; else missingFields.add("currentRole");
+
 
         if (profile.getGender() != null && !profile.getGender().isEmpty()) completedImportantFields++; else missingFields.add("gender");
         if (profile.getCvPath() != null && !profile.getCvPath().isEmpty()) completedImportantFields++; else missingFields.add("cvPath");
