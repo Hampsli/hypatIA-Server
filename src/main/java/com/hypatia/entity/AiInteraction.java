@@ -23,8 +23,8 @@ public class AiInteraction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    @Column(name = "ai_interaction_id")
+    private Long aiInteractionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -36,13 +36,13 @@ public class AiInteraction {
     @Size(max = 50, message = "Interaction type must not exceed 50 characters")
     private String interactionType;
 
-    @Lob // Maps to a CLOB (Character Large Object) in most databases
+
     @Column(name = "request_payload", nullable = false)
     @NotBlank(message = "Request payload to AI service is required")
     @Size(max = 10000, message = "Request payload must not exceed 10000 characters")
     private String requestPayload;
 
-    @Lob // Maps to a CLOB
+
     @Column(name = "response_payload", nullable = false)
     @NotBlank(message = "Response payload from AI service is required")
     @Size(max = 20000, message = "Response payload must not exceed 20000 characters")
@@ -91,8 +91,8 @@ public class AiInteraction {
     }
 
     // --- Getters and Setters ---
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() { return aiInteractionId; }
+    public void setId(Long id) { this.aiInteractionId = id; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
     public String getInteractionType() { return interactionType; }
@@ -111,7 +111,7 @@ public class AiInteraction {
     @Override
     public String toString() {
         return "AiInteraction{" +
-                "id=" + id +
+                "ai_interaction_id=" + aiInteractionId +
                 ", userId=" + (user != null ? user.getId() : null) +
                 ", interactionType='" + interactionType + '\'' +
                 ", cacheKey='" + cacheKey + '\'' +

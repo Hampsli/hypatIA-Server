@@ -55,7 +55,7 @@ public class AIService {
     @Value("${hypatia.ai.fastapi.url}")
     private String fastapiBaseUrl;
 
-    @Value("${hypatia.ai.fastapi.analyze-path:/api/analizar}")
+    @Value("${hypatia.ai.fastapi.url}")
     private String fastapiAnalyzePath;
 
     @Value("${hypatia.ai.request-timeout-seconds:30}")
@@ -72,6 +72,9 @@ public class AIService {
     public AIService(WebClient.Builder webClientBuilder,
                      @Value("${hypatia.ai.fastapi.url}") String fastapiBaseUrl,
                      @Value("${hypatia.ai.request-timeout-seconds:30}") int requestTimeoutSeconds) {
+
+        log.info("fastapi base url: "+fastapiBaseUrl);
+        log.info("fastapi analize path: "+fastapiAnalyzePath);
         this.fastapiBaseUrl = fastapiBaseUrl;
         this.requestTimeoutSeconds = requestTimeoutSeconds;
         this.fastapiWebClient = webClientBuilder.baseUrl(fastapiBaseUrl)
@@ -91,7 +94,7 @@ public class AIService {
      * @throws UserNotFoundException if the user doesn't exist.
      * @throws AIServiceException if the call to the FastAPI service fails or returns an error.
      */
-    @Cacheable(value = "aiResponses", key = "#userId + ':' + #analysisType + ':' + T(com.hypatia.service.AIService).generateHash(#inputText)")
+    //@Cacheable(value = "aiResponses", key = "#userId + ':' + #analysisType + ':' + T(com.hypatia.service.AIService).generateHash(#inputText)")
     public AIResponseDto getGenericAIAnalysis(Long userId, String analysisType, String inputText) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
@@ -102,7 +105,7 @@ public class AIService {
         boolean isCachedResponse = false; // This will always be false when this method is executed (i.e., on a cache miss)
 
         try {
-            Map<String, String> fastapiRequestBody = Map.of("text", inputText);
+            Map<String, String> fastapiRequestBody = Map.of("texto", inputText);
             requestPayloadForFastAPI = objectMapper.writeValueAsString(fastapiRequestBody);
 
             responsePayloadFromFastAPI = fastapiWebClient.post()

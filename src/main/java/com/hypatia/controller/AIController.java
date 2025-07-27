@@ -67,8 +67,8 @@ public class AIController {
      */
     private User getCurrentAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userService.findUserByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Authenticated user not found."));
+        Optional<User>userOptional=userService.findUserByEmail(email);
+        return userOptional.get();
     }
 
     /**
