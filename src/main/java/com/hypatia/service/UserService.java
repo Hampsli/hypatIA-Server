@@ -361,6 +361,7 @@ public class UserService implements UserDetailsService {
         dto.setTargetJobs(profile.getTargetJobs());
         dto.setDailyTasks(profile.getDailyTasks());
         dto.setSoftSkills(profile.getSoftSkills());
+        dto.setCaregiverStatus(profile.getCaregiverStatus());
         return dto;
     }
 

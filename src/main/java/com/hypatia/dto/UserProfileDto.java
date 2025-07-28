@@ -68,6 +68,8 @@ public class UserProfileDto {
     private String dailyTasks;
     private String softSkills;
 
+    private String caregiverStatus;
+
     // Constructor por defecto
     public UserProfileDto() {}
 
@@ -148,4 +150,20 @@ public class UserProfileDto {
 
     public String getSoftSkills() { return softSkills; }
     public void setSoftSkills(String softSkills) { this.softSkills = softSkills; }
+
+    public Boolean getCaregiver() {
+        return isCaregiver;
+    }
+
+    public void setCaregiver(Boolean caregiver) {
+        isCaregiver = caregiver;
+    }
+
+    public String getCaregiverStatus() {
+        return caregiverStatus;
+    }
+
+    public void setCaregiverStatus(String caregiverStatus) {
+        this.caregiverStatus = caregiverStatus;
+    }
 }

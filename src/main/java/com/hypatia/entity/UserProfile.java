@@ -45,6 +45,9 @@ public class UserProfile {
     @Column(name = "is_caregiver")
     private Boolean isCaregiver;
 
+    @Column(name = "caregiver_status")
+    private String caregiverStatus;
+
     @Column(name = "caregiving_hours_per_week", length = 50)
     @Size(max = 50, message = "Caregiving hours must not exceed 50 characters")
     private String caregivingHoursPerWeek;
@@ -220,6 +223,13 @@ public class UserProfile {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public String getCaregiverStatus() {
+        return caregiverStatus;
+    }
+
+    public void setCaregiverStatus(String caregiverStatus) {
+        this.caregiverStatus = caregiverStatus;
+    }
     @Override
     public String toString() {
         return "UserProfile{" +
