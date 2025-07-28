@@ -1,4 +1,4 @@
-- =================================================================
+-------------- =================================================================
 -- SCRIPT COMPLETO PARA CREAR Y POBLAR LA BASE DE DATOS DE HYPATIA
 -- =================================================================
 
@@ -6,7 +6,7 @@
 
 -- Eliminar tablas si ya existen para una ejecución limpia
 DROP TABLE IF EXISTS opciones_pregunta;
-DROP TABLE IF EXISTS preguntas;
+DROP TABLE IF EXISTS preguntas ;
 DROP TABLE IF EXISTS cuestionario_secciones;
 DROP TABLE IF EXISTS cuestionarios;
 DROP TABLE IF EXISTS respuestas_usuario;
@@ -115,6 +115,17 @@ CREATE TABLE respuestas_usuario (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE ai_interactions(
+    ai_interaction_id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    interaction_type VARCHAR(50) not null,
+    request_payload TEXT not null,
+    response_payload TEXT not null,
+    cache_key VARCHAR(125),
+    is_cached_response BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 
 -- ========= SECCIÓN 3: INSERCIÓN DE DATOS DEL CUESTIONARIO =========
 
@@ -211,5 +222,13 @@ SELECT setval('cuestionarios_id_seq', (SELECT MAX(id) FROM cuestionarios));
 SELECT setval('cuestionario_secciones_id_seq', (SELECT MAX(id) FROM cuestionario_secciones));
 SELECT setval('preguntas_id_seq', (SELECT MAX(id) FROM preguntas));
 SELECT setval('opciones_pregunta_id_seq', (SELECT MAX(id) FROM opciones_pregunta));
+
+
+ALTER TABLE user_profiles ADD COLUMN age_range VARCHAR(50);
+
+ALTER TABLE user_profiles ADD COLUMN name VARCHAR(100);
+
+ALTER TABLE user_profiles ADD COLUMN work_hours_per_week VARCHAR(50);
+
 
 -- Fin del script
