@@ -161,13 +161,10 @@ public class UserService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserProfile getUserProfile(User user) {
         log.debug("Attempting to retrieve user profile for user ID: {}", user.getId());
-        return userProfileRepository.findByUser(user)
-                .orElseThrow(() -> {
-                    log.warn("User profile not found for user ID: {}", user.getId());
-                    // Consider a more specific ProfileNotFoundException if needed
-                    return new UserNotFoundException("Perfil de usuario no encontrado para el ID: " + user.getId());
-                });
+        return userProfileRepository.findByUser(user).orElse(null);
     }
+
+
 
     /**
      * Retrieves a user's profile and packages it into a response for the controller.
@@ -331,7 +328,7 @@ public class UserService implements UserDetailsService {
      * @param profile The UserProfile entity to convert.
      * @return The resulting UserProfileDto.
      */
-    private UserProfileDto toUserProfileDto(UserProfile profile) {
+    public UserProfileDto toUserProfileDto(UserProfile profile) {
         UserProfileDto dto = new UserProfileDto();
         dto.setUserId(profile.getUser().getId());
         // Map name, ageRange, currentRole from UserProfile to UserProfileDto
@@ -362,6 +359,7 @@ public class UserService implements UserDetailsService {
         dto.setDailyTasks(profile.getDailyTasks());
         dto.setSoftSkills(profile.getSoftSkills());
         dto.setCaregiverStatus(profile.getCaregiverStatus());
+        dto.setMaxHoursPerWeek(profile.getMaxHoursPerWeek());
         return dto;
     }
 

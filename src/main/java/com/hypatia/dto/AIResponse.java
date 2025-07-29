@@ -9,6 +9,12 @@ public class AIResponse {
     private ArrayList<MetodologiasSugeridas> metodologias_sugeridas;
     private MetadataAnalisis metadata_analisis;
 
+    public AIResponse() {
+        habilidades_analizadas=new ArrayList<>();
+        metodologias_sugeridas=new ArrayList<>();
+        metadata_analisis=new MetadataAnalisis();
+    }
+
     public String getRetroalimentacion_original() {
         return retroalimentacion_original;
     }

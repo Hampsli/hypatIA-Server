@@ -2,6 +2,7 @@ package com.hypatia.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hypatia.dto.AIResponse;
 import com.hypatia.dto.AIResponseDto;
 import com.hypatia.entity.AiInteraction;
 import com.hypatia.entity.User;
@@ -242,5 +243,14 @@ public class AIService {
         int cleanedUpCount = aiInteractionRepository.deleteByCreatedAtBefore(cutoff);
         log.info("Cleaned up {} AI interactions older than {} days.", cleanedUpCount, olderThanDays);
         return cleanedUpCount;
+    }
+
+    public AiInteraction getLastInteractionByUserId(Long userId){
+       Optional<AiInteraction>  aiInteraction=aiInteractionRepository.findLastInteractionByUserId(userId);
+        return aiInteraction.orElse(null);
+    }
+
+    public <T> T convertJSON2AiResponse(String response, Class<T> clazz) throws JsonProcessingException {
+        return objectMapper.readValue(response,clazz);
     }
 }

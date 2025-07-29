@@ -42,6 +42,7 @@ public class UserProfileDto {
     private String desiredPosition;
 
     // --- Campos Opcionales ---
+    private String maxHoursPerWeek;
     private String cvPath;
     private Boolean isCaregiver;
     private String caregivingHoursPerWeek;
@@ -165,5 +166,13 @@ public class UserProfileDto {
 
     public void setCaregiverStatus(String caregiverStatus) {
         this.caregiverStatus = caregiverStatus;
+    }
+
+    public String getMaxHoursPerWeek() {
+        return maxHoursPerWeek;
+    }
+
+    public void setMaxHoursPerWeek(String maxHoursPerWeek) {
+        this.maxHoursPerWeek = maxHoursPerWeek;
     }
 }

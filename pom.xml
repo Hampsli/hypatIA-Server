@@ -130,8 +130,9 @@
 
         <dependency>
             <groupId>com.itextpdf</groupId>
-            <artifactId>html2pdf</artifactId>
-            <version>${itext.pdfhtml.version}</version>
+            <artifactId>itext7-core</artifactId>
+            <version>7.2.5</version>
+            <type>pom</type>
         </dependency>
 
         <dependency>
@@ -183,6 +184,7 @@
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
