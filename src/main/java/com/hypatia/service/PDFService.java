@@ -241,7 +241,7 @@ public class PDFService {
         //datos de generacion del doc
         document.add(new Paragraph("Participante: "+reportData.getProfileData().getUserProfile().getName()).setFontSize(12));
         document.add(new Paragraph("Fecha de Generación: "+reportData.getCommonReportData().getDateTime().format(dtf)).setFontSize(12));
-        document.add(new Paragraph("Email: "+reportData.getCommonReportData().getDateTime().format(dtf)).setFontSize(12));
+        document.add(new Paragraph("Email: "+reportData.getCommonReportData().getUser().getEmail()).setFontSize(12));
 
         //introduccion
         document.add(new Paragraph(ReportConstants.INTRODUCCION_PUNTO_PARTIDA_2).simulateBold().setFontSize(12));
