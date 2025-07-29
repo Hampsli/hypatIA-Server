@@ -346,12 +346,13 @@ public class PDFService {
         document.add(new Paragraph("\n"));
         int i=1;
         for (HabilidadesAnalizadas habilidad:reportData.getAiResponse().getHabilidades_analizadas()){
-            document.add(new Paragraph("Habilidad "+i+": "+habilidad.getHabilidad()));
+            document.add(new Paragraph("Habilidad: "+i+": "+habilidad.getHabilidad()));
             document.add(new Paragraph("Competencia ligada: "+habilidad.getCompetencia_ligada()));
             document.add(new Paragraph("Nivel de desarrollo: "+habilidad.getNivel_desarrollo()));
             document.add(new Paragraph("Observaciones: "+habilidad.getObservaciones()));
             i++;
         }
+        document.add(new Paragraph("Metodologías sugeridas").simulateBold().setFontSize(14).setTextAlignment(TextAlignment.CENTER));
         if (!reportData.getAiResponse().getMetodologias_sugeridas().isEmpty()) {
             for (MetodologiasSugeridas metodologia:reportData.getAiResponse().getMetodologias_sugeridas()){
                 document.add(new Paragraph("Metodología sugerida: "+metodologia.getMetodologia()));
@@ -359,7 +360,7 @@ public class PDFService {
             }
 
         }else{
-            document.add(new Paragraph(ReportConstants.NO_METODOLOGIAS_SUGERIDAS));
+            document.add(new Paragraph(ReportConstants.NO_METODOLOGIAS_SUGERIDAS).simulateBold());
         }
 
 

@@ -185,7 +185,8 @@ public class SecurityConfig {
             "http://localhost:3000",  // React development server
             "http://localhost:5000",  // Alternative frontend port
             "http://127.0.0.1:3000",
-            "http://127.0.0.1:5000"
+            "http://127.0.0.1:5000",
+                "https://hypat-ia-app.vercel.app"
         ));
         
         // Allow all HTTP methods

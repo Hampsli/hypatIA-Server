@@ -15,11 +15,11 @@ public class UserProfileDto {
     private Long userId;
 
     // --- NEW / UPDATED FIELDS (from UserProfile entity) ---
-    @NotBlank(message = "El nombre es un campo requerido.")
+
     @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres.")
     private String name; // Added: For user's full name
 
-    @NotBlank(message = "El rango de edad es un campo requerido.")
+
     @Size(max = 50, message = "El rango de edad no puede exceder los 50 caracteres.")
     private String ageRange; // Added: For user's age range (as string)
 
