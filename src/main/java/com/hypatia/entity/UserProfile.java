@@ -32,10 +32,7 @@ public class UserProfile {
     @Size(max = 50, message = "Age range must not exceed 50 characters")
     private String ageRange; // Field name in Java, maps to age_range in DB
 
-    @Column(name = "current_role", length = 100, nullable = false)
-    @NotBlank(message = "Current role is required")
-    @Size(max = 100, message = "Current role cannot exceed 100 characters")
-    private String currentRole;
+
 
     @Column(name = "gender", length = 50)
     @Size(max = 50, message = "Gender field must not exceed 50 characters")
@@ -47,6 +44,9 @@ public class UserProfile {
 
     @Column(name = "is_caregiver")
     private Boolean isCaregiver;
+
+    @Column(name = "caregiver_status")
+    private String caregiverStatus;
 
     @Column(name = "caregiving_hours_per_week", length = 50)
     @Size(max = 50, message = "Caregiving hours must not exceed 50 characters")
@@ -123,6 +123,10 @@ public class UserProfile {
     @Size(max = 500, message = "Soft skills must not exceed 500 characters")
     private String softSkills;
 
+    @Column(name = "work_hours_per_week", length = 50)
+    @Size(max = 50,message = "Work hours per week must not exceed 500 characters")
+    private String maxHoursPerWeek;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -138,11 +142,27 @@ public class UserProfile {
     }
 
     // --- OPTIMIZATION: Updated constructor to take ageRange instead of age ---
-    public UserProfile(User user, String name, String ageRange, String currentRole) {
+    public UserProfile(User user, String name, String ageRange,String currentPosition) {
         this.user = user;
         this.name = name;
         this.ageRange = ageRange; // Use ageRange
-        this.currentRole = currentRole;
+        this.currentPosition = currentPosition;
+    }
+
+    public Boolean getCaregiver() {
+        return isCaregiver;
+    }
+
+    public void setCaregiver(Boolean caregiver) {
+        isCaregiver = caregiver;
+    }
+
+    public String getMaxHoursPerWeek() {
+        return maxHoursPerWeek;
+    }
+
+    public void setMaxHoursPerWeek(String maxHoursPerWeek) {
+        this.maxHoursPerWeek = maxHoursPerWeek;
     }
 
     public Long getId() { return id; }
@@ -155,8 +175,7 @@ public class UserProfile {
     public String getAgeRange() { return ageRange; }
     public void setAgeRange(String ageRange) { this.ageRange = ageRange; }
     // --- Removed getAge() and setAge() ---
-    public String getCurrentRole() { return currentRole; }
-    public void setCurrentRole(String currentRole) { this.currentRole = currentRole; }
+
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
     public String getCvPath() { return cvPath; }
@@ -204,6 +223,13 @@ public class UserProfile {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    public String getCaregiverStatus() {
+        return caregiverStatus;
+    }
+
+    public void setCaregiverStatus(String caregiverStatus) {
+        this.caregiverStatus = caregiverStatus;
+    }
     @Override
     public String toString() {
         return "UserProfile{" +

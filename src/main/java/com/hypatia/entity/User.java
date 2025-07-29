@@ -71,12 +71,6 @@ public class User {
         return userProfile != null ? userProfile.getAgeRange() : null;
     }
 
-    // --- OPTIMIZATION: Getter for currentRole from UserProfile ---
-    public String getCurrentRole() {
-        return userProfile != null ? userProfile.getCurrentRole() : null;
-    }
-
-
     @Override
     public String toString() {
         String userName = (userProfile != null && userProfile.getName() != null) ? userProfile.getName() : "N/A";

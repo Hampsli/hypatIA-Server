@@ -2,6 +2,7 @@ package com.hypatia.repository;
 
 import com.hypatia.entity.AiInteraction;
 import com.hypatia.entity.User;
+import com.hypatia.Constants.Queries;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -33,6 +34,9 @@ public interface AiInteractionRepository extends JpaRepository<AiInteraction, Lo
     List<AiInteraction> findRecentInteractionsByUser(@Param("user") User user,
                                                      @Param("since") LocalDateTime since,
                                                      @Param("limit") int limit);
+
+    @Query(value=Queries.QUERY_GET_AI_INTERACTIONS_BY_USER_ID, nativeQuery = true)
+   Optional<AiInteraction>  findLastInteractionByUserId(@Param("userID") Long userID);
 
     long countByUser(User user);
 

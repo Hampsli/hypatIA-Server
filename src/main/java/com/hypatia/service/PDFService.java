@@ -1,21 +1,19 @@
 package com.hypatia.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hypatia.dto.AIResponseDto;
+import com.hypatia.Constants.ReportConstants;
+import com.hypatia.dto.*;
+import com.hypatia.entity.AiInteraction;
 import com.hypatia.entity.User;
 import com.hypatia.entity.UserProfile;
 import com.hypatia.exception.UserNotFoundException;
 import com.hypatia.repository.UserRepository;
-import com.itextpdf.html2pdf.ConverterProperties;
-import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.layout.properties.TextAlignment;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,14 +21,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap; // To preserve insertion order for grouped skills
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors; // For stream operations
+
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+
+import com.itextpdf.layout.element.ListItem;
 
 /**
  * Service class for PDF generation and report creation.
@@ -57,8 +57,11 @@ public class PDFService {
     @Autowired
     private QuestionnaireService questionnaireService; // To get assessment data (questions/answers)
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // For parsing AIResponseDto content
+    @Autowired
+    private AIService aiService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper(); // For parsing AIResponseDto content
+/*
     @Value("${hypatia.app.base-url:http://localhost:3000}")
     private String baseUrl;
 
@@ -67,27 +70,21 @@ public class PDFService {
 
     @Value("${hypatia.report.footer:© 2024 hypatIA. Empowering women in STEM.}")
     private String reportFooter;
-
+*/
     /**
      * Generates a comprehensive "Profile Summary" PDF report for a user,
      * including questionnaire answers and parsed AI analysis results.
      * This method now consolidates all report generation logic into a single type.
      *
-     * @param userId The ID of the user for whom the report is generated.
-     * @param aiResponse The generic AI response DTO (contains raw JSON from FastAPI).
-     * @param reportType This parameter is now fixed to "PROFILE_SUMMARY".
-     * @param reportSpecificParams Not used directly for this specific report, but kept for signature consistency.
+     * @param userId The ID of the user for whom the report is generated.     *
      * @return PDF report as ByteArrayResource.
      * @throws UserNotFoundException if user doesn't exist.
      * @throws IOException if PDF generation fails.
      * @throws IllegalArgumentException if reportType is not "PROFILE_SUMMARY" or AI data is malformed.
      */
-    public Resource generateGenericReport(Long userId, AIResponseDto aiResponse, String reportType, Map<String, String> reportSpecificParams) throws IOException {
+    public byte[] generateGenericReport(Long userId) throws IOException {
         // Enforce that only "PROFILE_SUMMARY" reports are generated
-        if (!"PROFILE_SUMMARY".equalsIgnoreCase(reportType)) {
-            log.error("Unsupported report type requested: {}. Only 'PROFILE_SUMMARY' is supported.", reportType);
-            throw new IllegalArgumentException("Unsupported report type. Only 'PROFILE_SUMMARY' reports can be generated.");
-        }
+
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
@@ -95,14 +92,22 @@ public class PDFService {
                     return new UserNotFoundException("User not found with ID: " + userId);
                 });
 
-        Map<String, Object> templateData = new HashMap<>();
+        //Map<String, Object> templateData = new HashMap<>();
+
+        ReportData reportData=new ReportData();
 
         // --- 1. Populate Common Report Data ---
-        populateCommonReportData(templateData, user, "Resumen de Perfil Profesional"); // Display name for report type
+        populateCommonReportData(reportData, user, "Resumen de Perfil Profesional"); // Display name for report type
 
         // --- 2. Populate User Profile and Assessment Data ---
-        populateUserProfileAndAssessmentData(templateData, user);
+        populateUserProfileAndAssessmentData(reportData, user);
 
+        //--- 3. populate AI interaction response
+
+        populateAIresponse(reportData,user);
+
+        byte[]report=generateStartPointHypatIA(reportData);
+/*
         // --- 3. Populate Questionnaire Questions and Answers ---
         try {
             // Assuming questionnaireService provides a method to get questions and answers
@@ -116,7 +121,7 @@ public class PDFService {
 
         // --- 4. Parse and Integrate AI Analysis Content ---
         if (aiResponse != null && aiResponse.getResponseContent() != null) {
-            Map<String, Object> aiContent = aiResponse.getResponseContent();
+            //Map<String, Object> aiContent = aiResponse.getResponseContent();
             templateData.put("aiRawContent", aiContent); // For debugging or full raw display
 
             // Extract and format original feedback text
@@ -164,94 +169,203 @@ public class PDFService {
             templateData.put("habilidadesAnalizadasAgrupadas", new LinkedHashMap<>());
             templateData.put("metodologiasSugeridas", new ArrayList<>());
         }
-
+*/
         // --- 5. Generate PDF ---
         log.info("Generating Profile Summary PDF report for user {}", userId);
-        return generatePDFFromTemplate("profile-summary-report", templateData); // Use a new specific template name
+        return report;//generatePDFFromTemplate("profile-summary-report", templateData); // Use a new specific template name
     }
 
 
     /**
      * Populates common data for all PDF reports.
-     * @param templateData The map to populate.
+     * @param reportData The map to populate.
      * @param user The user entity.
      * @param reportTypeDisplayName The display name of the report type.
      */
-    private void populateCommonReportData(Map<String, Object> templateData, User user, String reportTypeDisplayName) {
-        templateData.put("user", user);
-        templateData.put("generatedAt", LocalDateTime.now());
-        templateData.put("reportTypeDisplay", reportTypeDisplayName);
-        templateData.put("organizationName", organizationName);
-        templateData.put("baseUrl", baseUrl);
-        templateData.put("footer", reportFooter);
+    private void populateCommonReportData(ReportData reportData, User user, String reportTypeDisplayName) {
+        CommonReportData commonReportData=new CommonReportData();
+        UserDto usrDto=new UserDto();
+        usrDto.setId(user.getId());
+        usrDto.setRole(user.getRole().name());
+        usrDto.setEmail(user.getEmail());
+        usrDto.setStatus(user.getStatus().name());
+
+        commonReportData.setUser(usrDto);
+        commonReportData.setReportTypeDisplayName(reportTypeDisplayName);
+        commonReportData.setFooter(ReportConstants.REPORT_FOOTER);
+        commonReportData.setOrganizationName(ReportConstants.ORGANIZATION_NAME);
+        commonReportData.setDateTime(LocalDateTime.now());
+        reportData.setCommonReportData(commonReportData);
     }
 
     /**
      * Populates user profile and assessment data for PDF reports.
-     * @param templateData The map to populate.
+     * @param reportData The map to populate.
      * @param user The user entity.
      */
-    private void populateUserProfileAndAssessmentData(Map<String, Object> templateData, User user) {
-        try {
-            UserProfile profile = userService.getUserProfile(user); // Assuming this returns UserProfile or throws if not found
-            templateData.put("profile", profile);
-        } catch (Exception e) {
-            log.warn("Could not load user profile for PDF report for user {}: {}", user.getId(), e.getMessage());
-            templateData.put("profile", null); // Set to null if profile cannot be loaded
-        }
-
-        try {
-            // Assuming these methods exist and return valid data or null/empty if not applicable
-            // For profile summary, we might want ALL assessment questions/answers rather than just summary/scores.
-            // Ensure questionnaireService.getUserQuestionsAndAnswers(userId) provides what's needed.
-            Optional<Map<String, Object>> assessmentSummary = questionnaireService.getAssessmentSummary(user);
-            templateData.put("assessmentSummary", assessmentSummary);
-
-            Map<String, Double> categoryScores = questionnaireService.calculateCategoryScores(user);
-            templateData.put("categoryScores", categoryScores);
-
-            Double completionPercentage = questionnaireService.getAssessmentCompletionPercentage(user);
-            templateData.put("completionPercentage", completionPercentage);
-        } catch (Exception e) {
-            log.warn("Could not load assessment data for PDF report for user {}: {}", user.getId(), e.getMessage());
-            templateData.put("assessmentSummary", null);
-            templateData.put("categoryScores", null);
-            templateData.put("completionPercentage", null);
-        }
+    private void populateUserProfileAndAssessmentData(ReportData reportData, User user) {
+        UserProfile profile = userService.getUserProfile(user); // Assuming this returns UserProfile or throws if not found
+        UserProfileData profileData=new UserProfileData();
+        UserProfileDto userProfileDto=userService.toUserProfileDto(profile);
+        profileData.setUserProfile(userProfileDto);
+        reportData.setProfileData(profileData);
     }
 
+    private void populateAIresponse(ReportData reportData, User user){
+        AiInteraction aiInteraction= aiService.getLastInteractionByUserId(user.getId());
+        AIResponse aiResponse=new AIResponse();
 
-    /**
-     * Core method to generate PDF from Thymeleaf template.
-     *
-     * @param templateName Thymeleaf template name (e.g., "profile-summary-report").
-     * @param templateData data context for template processing.
-     * @return PDF as ByteArrayResource.
-     * @throws IOException if PDF generation fails.
-     */
-    private Resource generatePDFFromTemplate(String templateName, Map<String, Object> templateData) throws IOException {
-        try (ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream()) { // Use try-with-resources
-            // Process Thymeleaf template
-            Context thymeleafContext = new Context();
-            thymeleafContext.setVariables(templateData);
-
-            // Template paths are relative to src/main/resources/templates/pdf/
-            String htmlContent = templateEngine.process("pdf/" + templateName, thymeleafContext);
-
-            // Configure PDF converter properties
-            ConverterProperties converterProperties = new ConverterProperties();
-            converterProperties.setCharset("UTF-8");
-
-            // Generate PDF
-            HtmlConverter.convertToPdf(htmlContent, pdfOutputStream, converterProperties);
-
-            log.info("PDF generado exitosamente desde la plantilla: {}", templateName);
-            return new ByteArrayResource(pdfOutputStream.toByteArray());
-
-        } catch (Exception e) {
-            log.error("Fallo al generar el reporte PDF desde la plantilla {}: {}", templateName, e.getMessage(), e);
-            throw new IOException("Fallo al generar el reporte PDF desde la plantilla " + templateName + ": " + e.getMessage(), e);
+        try {
+            aiResponse=aiService.convertJSON2AiResponse(aiInteraction.getResponsePayload(),AIResponse.class);
+        } catch (JsonProcessingException e) {
+            log.error("Exception trying to convert aiResponse string to java object"+e.getMessage());
+            throw new RuntimeException(e);
         }
+        reportData.setAiResponse(aiResponse);
+    }
+
+    public byte[] generateStartPointHypatIA(ReportData reportData){
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfWriter writer = new PdfWriter(baos);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document document = new Document(pdf);
+        DateTimeFormatter dtf=DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM yyyy");
+
+        // Título
+        document.add(new Paragraph(ReportConstants.REPORT_HEADER_PUNTO_PARTIDA).simulateBold().setFontSize(18).setTextAlignment(TextAlignment.CENTER));
+        document.add(new Paragraph("\n"));
+
+        //introduccin documento
+        document.add(new Paragraph(ReportConstants.INTRODUCCION_PUNTO_PARTIDA_1).simulateBold().simulateItalic().setFontSize(14));
+
+        //datos de generacion del doc
+        document.add(new Paragraph("Participante: "+reportData.getProfileData().getUserProfile().getName()).setFontSize(12));
+        document.add(new Paragraph("Fecha de Generación: "+reportData.getCommonReportData().getDateTime().format(dtf)).setFontSize(12));
+        document.add(new Paragraph("Email: "+reportData.getCommonReportData().getDateTime().format(dtf)).setFontSize(12));
+
+        //introduccion
+        document.add(new Paragraph(ReportConstants.INTRODUCCION_PUNTO_PARTIDA_2).simulateBold().setFontSize(12));
+        document.add(new Paragraph("\n"));
+        //perfil del participante
+        document.add(new Paragraph(ReportConstants.PERFIL_PARTICIPANTE_HEADER).simulateBold().setFontSize(14));
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.SECCION_PERFIL_PARTICIPANTE).simulateBold().setFontSize(14));
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.INFORMACION_PERSONAL_HEADER).simulateBold().setFontSize(14));
+
+
+        com.itextpdf.layout.element.List list = new com.itextpdf.layout.element.List().setSymbolIndent(12).setListSymbol("\u2022 ");
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Género"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getGender()!=null)?(reportData.getProfileData().getUserProfile().getGender()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Rango de edad"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getAgeRange()!=null)?(reportData.getProfileData().getUserProfile().getAgeRange()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        document.add(list);
+
+
+        document.add(new Paragraph(ReportConstants.INFORMACION_ESCOLAR_HEADER).simulateBold().setFontSize(14));
+
+        list=new com.itextpdf.layout.element.List();
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  Último grado de estudios completo"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getInitialEducation()!=null)?(reportData.getProfileData().getUserProfile().getInitialEducation()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : ¿En qué área es tu nivel educativo superior?"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getHigherEducationArea()!=null)?(reportData.getProfileData().getUserProfile().getHigherEducationArea()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Si no tienes estudios superiores, ¿Qué tecnología - lenguaje manejas actualmente?"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getTechnologyLanguage()!=null)?(reportData.getProfileData().getUserProfile().getTechnologyLanguage()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        document.add(list);
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.INFORMACION_COMPLEMENTARIA_LABORAL).simulateBold().setFontSize(14));
+        document.add(new Paragraph("\n"));
+        list=new com.itextpdf.layout.element.List();
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  ¿Qué posición tienes actualmente?"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getCurrentPosition()!=null)?(reportData.getProfileData().getUserProfile().getCurrentPosition()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  ¿Cuántas horas destinadas trabajas a la semana?"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getMaxHoursPerWeek()!=null)?(reportData.getProfileData().getUserProfile().getMaxHoursPerWeek()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Tu trabajo es: "));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getWorkMode()!=null)?(reportData.getProfileData().getUserProfile().getWorkMode()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Indica tu rango salarial."));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getSalaryRange()!=null)?(reportData.getProfileData().getUserProfile().getSalaryRange()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : ¿Cuál dirías que es la principal razón para moverte hacia otro espacio laboral?"));
+        if (!reportData.getProfileData().getUserProfile().getReasonsForMovement().isEmpty()) {
+            for (String reason : reportData.getProfileData().getUserProfile().getReasonsForMovement()) {
+                list.add(new ListItem(reason));
+            }
+        }else{
+            list.add(new ListItem(ReportConstants.RESPUESTA+" : "+ReportConstants.DATO_NO_ENCONTRADO));
+        }
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : : Al cambiarte de empleo, esperarías ganar en promedio cuánto más de lo que percibes actualmente, por mes:"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getExpectedSalary()!=null)?(reportData.getProfileData().getUserProfile().getExpectedSalary()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  En los últimos seis meses has completado cursos, talleres, diplomados de cualquier índole"));
+        if ((reportData.getProfileData().getUserProfile().getHasCompletedCourses()!=null)) {
+            list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getHasCompletedCourses())?("SI"):("NO"))));
+        }else {
+            list.add(new ListItem(ReportConstants.RESPUESTA+" : "+ReportConstants.DATO_NO_ENCONTRADO));
+        }
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : ¿Cuántos proyectos has construido con esos cursos, talleres odiplomados? en los últimos dos a tres meses "));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getProjectsBuilt()!=null)?(reportData.getProfileData().getUserProfile().getProjectsBuilt()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  Coloca el nombre de tres vacantes a las que te gustaría aplicar actualmente"));
+        if (!reportData.getProfileData().getUserProfile().getTargetJobs().isEmpty()) {
+            for (String targetJob:reportData.getProfileData().getUserProfile().getTargetJobs()){
+                list.add(new ListItem(targetJob));
+            }
+        }else {
+            list.add(new ListItem(ReportConstants.RESPUESTA+" : "+ReportConstants.DATO_NO_ENCONTRADO));
+        }
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : Enlista un máximo de cinco laborales diarias de manera general (Administrativas y  de desarrollo)"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getDailyTasks()!=null)?(reportData.getProfileData().getUserProfile().getDailyTasks()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        document.add(list);
+
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.ACTIVIDADES_DE_CUIDADO).simulateBold().setFontSize(14));
+        document.add(new Paragraph("\n"));
+        list=new com.itextpdf.layout.element.List();
+
+        list.add(new ListItem(ReportConstants.PREGUNTA+" : ¿Actualmente, ejerces o participas en tareas de cuidado? (de forma directa o indirecta)"));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getCaregiverStatus()!=null)?(reportData.getProfileData().getUserProfile().getCaregiverStatus()):(ReportConstants.DATO_NO_ENCONTRADO))));
+        list.add(new ListItem(ReportConstants.PREGUNTA+" :  Si, la respuesta fue que sí participas, ¿Cuánto tiempo dedicas a ello por semana? (O podrías colocar un aproximado de tu tiempo al día en porcentaje). "));
+        list.add(new ListItem(ReportConstants.RESPUESTA+" : "+((reportData.getProfileData().getUserProfile().getCaregivingHoursPerWeek()!=null)?(reportData.getProfileData().getUserProfile().getCaregivingHoursPerWeek()):(ReportConstants.DATO_NO_ENCONTRADO))));
+
+
+        document.add(list);
+
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.ANALISIS_IA_HEADER).simulateBold().setFontSize(16));
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.INTRODUCCION_ANALISIS_IA).simulateBold().setFontSize(14));
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph("Retroalimentación analizada:").simulateBold().setFontSize(12));
+        document.add(new Paragraph(reportData.getAiResponse().getRetroalimentacion_original()).setFontSize(12));
+        Boolean revisionHumanaNecesaria=reportData.getAiResponse().getMetadata_analisis().getRevision_humana_necesaria();
+        document.add(new Paragraph("Revisión humana necesaria?: "+((revisionHumanaNecesaria.equals(true))?("SI"):("NO"))).simulateBold().setFontSize(12));
+        document.add(new Paragraph("\n"));
+        document.add(new Paragraph(ReportConstants.RESULTADOS).simulateBold().setFontSize(14).setTextAlignment(TextAlignment.CENTER));
+        document.add(new Paragraph("\n"));
+        int i=1;
+        for (HabilidadesAnalizadas habilidad:reportData.getAiResponse().getHabilidades_analizadas()){
+            document.add(new Paragraph("Habilidad "+i+": "+habilidad.getHabilidad()));
+            document.add(new Paragraph("Competencia ligada: "+habilidad.getCompetencia_ligada()));
+            document.add(new Paragraph("Nivel de desarrollo: "+habilidad.getNivel_desarrollo()));
+            document.add(new Paragraph("Observaciones: "+habilidad.getObservaciones()));
+            i++;
+        }
+        if (!reportData.getAiResponse().getMetodologias_sugeridas().isEmpty()) {
+            for (MetodologiasSugeridas metodologia:reportData.getAiResponse().getMetodologias_sugeridas()){
+                document.add(new Paragraph("Metodología sugerida: "+metodologia.getMetodologia()));
+                document.add(new Paragraph("Asociada a: "+metodologia.getAsociada_a_habilidad()));
+            }
+
+        }else{
+            document.add(new Paragraph(ReportConstants.NO_METODOLOGIAS_SUGERIDAS));
+        }
+
+
+
+        document.close();
+        return baos.toByteArray();
     }
 
     /**
@@ -280,8 +394,8 @@ public class PDFService {
     public Map<String, Object> getPDFServiceStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("templateEngine", templateEngine != null ? "Available" : "Not configured");
-        status.put("organizationName", organizationName);
-        status.put("baseUrl", baseUrl);
+        status.put("organizationName", null);
+        status.put("baseUrl", null);
         status.put("pdfQuality", "Managed by iText defaults/configuration");
         status.put("supportedReportTypes", List.of("PROFILE_SUMMARY")); // Only PROFILE_SUMMARY is supported now
 

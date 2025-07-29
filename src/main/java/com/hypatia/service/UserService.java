@@ -161,13 +161,10 @@ public class UserService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserProfile getUserProfile(User user) {
         log.debug("Attempting to retrieve user profile for user ID: {}", user.getId());
-        return userProfileRepository.findByUser(user)
-                .orElseThrow(() -> {
-                    log.warn("User profile not found for user ID: {}", user.getId());
-                    // Consider a more specific ProfileNotFoundException if needed
-                    return new UserNotFoundException("Perfil de usuario no encontrado para el ID: " + user.getId());
-                });
+        return userProfileRepository.findByUser(user).orElse(null);
     }
+
+
 
     /**
      * Retrieves a user's profile and packages it into a response for the controller.
@@ -256,9 +253,7 @@ public class UserService implements UserDetailsService {
         if (profileDto.getAgeRange() != null) { // Correctly update ageRange (String)
             profile.setAgeRange(profileDto.getAgeRange());
         }
-        if (profileDto.getCurrentRole() != null) {
-            profile.setCurrentRole(profileDto.getCurrentRole());
-        }
+
 
         // Rest of UserProfileDto mappings
         if (profileDto.getGender() != null) {
@@ -333,13 +328,13 @@ public class UserService implements UserDetailsService {
      * @param profile The UserProfile entity to convert.
      * @return The resulting UserProfileDto.
      */
-    private UserProfileDto toUserProfileDto(UserProfile profile) {
+    public UserProfileDto toUserProfileDto(UserProfile profile) {
         UserProfileDto dto = new UserProfileDto();
         dto.setUserId(profile.getUser().getId());
         // Map name, ageRange, currentRole from UserProfile to UserProfileDto
         dto.setName(profile.getName());
         dto.setAgeRange(profile.getAgeRange()); // Use getAgeRange()
-        dto.setCurrentRole(profile.getCurrentRole());
+
 
         // Rest of UserProfile to DTO mappings
         dto.setGender(profile.getGender());
@@ -363,6 +358,8 @@ public class UserService implements UserDetailsService {
         dto.setTargetJobs(profile.getTargetJobs());
         dto.setDailyTasks(profile.getDailyTasks());
         dto.setSoftSkills(profile.getSoftSkills());
+        dto.setCaregiverStatus(profile.getCaregiverStatus());
+        dto.setMaxHoursPerWeek(profile.getMaxHoursPerWeek());
         return dto;
     }
 
@@ -376,7 +373,6 @@ public class UserService implements UserDetailsService {
         // Check for name, ageRange, currentRole as mandatory in UserProfile
         return profile.getName() != null && !profile.getName().isEmpty() &&
                 profile.getAgeRange() != null && !profile.getAgeRange().isEmpty() && // Check ageRange
-                profile.getCurrentRole() != null && !profile.getCurrentRole().isEmpty() &&
                 profile.getGender() != null && !profile.getGender().isEmpty() &&
                 profile.getInitialEducation() != null && !profile.getInitialEducation().isEmpty() &&
                 profile.getYearsOfExperience() != null && !profile.getYearsOfExperience().isEmpty() &&
@@ -413,7 +409,7 @@ public class UserService implements UserDetailsService {
         // Updated checks for name, ageRange, currentRole
         if (profile.getName() != null && !profile.getName().isEmpty()) completedImportantFields++; else missingFields.add("name");
         if (profile.getAgeRange() != null && !profile.getAgeRange().isEmpty()) completedImportantFields++; else missingFields.add("ageRange");
-        if (profile.getCurrentRole() != null && !profile.getCurrentRole().isEmpty()) completedImportantFields++; else missingFields.add("currentRole");
+
 
         if (profile.getGender() != null && !profile.getGender().isEmpty()) completedImportantFields++; else missingFields.add("gender");
         if (profile.getCvPath() != null && !profile.getCvPath().isEmpty()) completedImportantFields++; else missingFields.add("cvPath");

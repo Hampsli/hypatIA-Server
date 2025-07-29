@@ -3,6 +3,7 @@ package com.hypatia.controller;
 import com.hypatia.dto.AIRequestDto; // Updated generic request DTO
 import com.hypatia.dto.AIResponseDto; // Generic AI response DTO
 import com.hypatia.dto.AICleanupRequestDto; // Cleanup DTO remains
+import com.hypatia.dto.ReportData;
 import com.hypatia.entity.AiInteraction;
 import com.hypatia.entity.User;
 import com.hypatia.exception.UserNotFoundException; // For custom user not found exception
@@ -67,8 +68,8 @@ public class AIController {
      */
     private User getCurrentAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userService.findUserByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("Authenticated user not found."));
+        Optional<User>userOptional=userService.findUserByEmail(email);
+        return userOptional.get();
     }
 
     /**
@@ -110,32 +111,27 @@ public class AIController {
      *
      * GET /api/ai/reports/{reportType}/{userId}
      *
-     * @param reportType Type of report (e.g., "assessment_analysis", "career_recommendations", etc.).
-     * @param userId The ID of the user for whom to generate the report.
-     * @param text The original text input used for the AI analysis that generated the report content.
+     *
+     *
      * @return ResponseEntity with PDF file as a Resource.
      * Errors are handled by GlobalExceptionHandler.
      */
-    @GetMapping("/reports/{reportType}/{userId}")
-    @PreAuthorize("authentication.principal.username == @userService.findUserById(#userId).orElse(null)?.email or hasRole('ADMIN')")
-    public ResponseEntity<Resource> downloadAIReport(
-            @PathVariable String reportType,
-            @PathVariable Long userId,
-            @RequestParam @NotBlank(message = "Original text input is required for report generation.") String text) throws IOException { // The original text is now a required parameter
+    @GetMapping("/reports/")
+    public ResponseEntity<byte[]> downloadAIReport() throws IOException {
         User user = getCurrentAuthenticatedUser();
 
         // AIService needs to fetch or re-generate the AI response based on reportType and the original text
         // This will trigger a cache hit if the original analysis was cached.
-        AIResponseDto aiResponse = aiService.getGenericAIAnalysis(userId, reportType, text);
+        //AIResponseDto aiResponse = aiService.getGenericAIAnalysis(userId, reportType, text);
 
         // PDFService now generates a PDF based on the generic AIResponseDto and the reportType
         // It might also need the original text or other params for formatting purposes
-        Resource pdfResource = pdfService.generateGenericReport(userId, aiResponse, reportType, Map.of("originalText", text)); // Pass original text as a param for PDF generation if needed
-        String filename = pdfService.generateReportFilename(reportType, user.getEmail());
+        byte[] pdfResource = pdfService.generateGenericReport(user.getId()); // Pass original text as a param for PDF generation if needed
+        //String filename = pdfService.generateReportFilename(reportType, user.getEmail());
 
         return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=punto_de_partida_hypatIA.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .body(pdfResource);
     }
 

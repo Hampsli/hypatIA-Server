@@ -121,15 +121,15 @@ public class AuthService {
         User user = userService.registerNewUser(registrationDto);
 
         // Generate and send OTP for email verification
-        generateAndSendOtp(user.getEmail(), "EMAIL_VERIFICATION");
+        //generateAndSendOtp(user.getEmail(), "EMAIL_VERIFICATION");
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Usuario registrado exitosamente. Por favor verifica tu email con el OTP enviado.");
+        response.put("message", "Usuario registrado exitosamente.");
         response.put("email", user.getEmail());
-        response.put("nextStep", "OTP_VERIFICATION");
-        response.put("otpExpirationMinutes", otpExpirationMinutes);
+        //response.put("nextStep", "OTP_VERIFICATION");
+        //response.put("otpExpirationMinutes", otpExpirationMinutes);
 
-        log.info("User registered successfully and OTP sent to: {}", user.getEmail());
+        log.info("User registered: {}", user.getEmail());
         return response;
     }
 
@@ -157,20 +157,39 @@ public class AuthService {
         }
 
         // Check user status to ensure they can log in
-        if (user.getStatus() == UserStatus.PENDING_ONBOARDING) {
+        /*if (user.getStatus() == UserStatus.PENDING_ONBOARDING) {
             log.warn("Login attempt for unverified user: {}", loginDto.getEmail());
             throw new IllegalArgumentException("Tu cuenta está pendiente de verificación de email. Por favor, completa el proceso de registro.");
         }
-        // Add more specific checks if needed (e.g., if (user.getStatus() == UserStatus.LOCKED) { /* throw new AccountLockedException */ }
+        // Add more specific checks if needed (e.g., if (user.getStatus() == UserStatus.LOCKED) {  throw new AccountLockedException  }
 
         // Generate and send OTP for login verification
-        generateAndSendOtp(user.getEmail(), "LOGIN_VERIFICATION");
+        generateAndSendOtp(user.getEmail(), "LOGIN_VERIFICATION");*/
+
+        if (user.getStatus() == UserStatus.PENDING_ONBOARDING) {
+            user.setStatus(UserStatus.PARTICIPANT); // Activate the user
+            userService.saveUser(user); // Persist user status change
+            log.info("User {} activated to PARTICIPANT status after email verification.", user.getEmail());
+            // Optional: Send a welcome email after successful activation
+            // emailService.sendWelcomeEmail(user.getEmail(), user.getProfile().getName()); // Assuming UserProfile is loaded and has getName()
+        }
+
+        // Generate JWT token for the authenticated user
+        String token = jwtUtil.generateToken(user.getEmail(), user.getId());
+
+        // Prepare user information for response (mirroring UserDto structure for consistency)
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("role", user.getRole().name()); // Assuming getRole() returns an enum
+        userInfo.put("status", user.getStatus().name()); // Assuming getStatus() returns an enum
+        // Do NOT include sensitive fields like password or full profile details here
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "OTP enviado a tu email para verificación.");
-        response.put("email", user.getEmail());
-        response.put("nextStep", "OTP_VERIFICATION");
-        response.put("otpExpirationMinutes", otpExpirationMinutes);
+        response.put("token", token);
+        response.put("user", userInfo);
+        response.put("message", "Autenticación exitosa.");
+
 
         log.info("Login initiated for user: {}", user.getEmail());
         return response;
@@ -189,7 +208,7 @@ public class AuthService {
     public Map<String, Object> verifyOtpAndAuthenticate(OtpVerificationDto otpDto) {
         // Validation of DTO structure, length, format etc. is handled by @Valid in the controller.
 
-        LocalDateTime currentTime = LocalDateTime.now();
+        /*LocalDateTime currentTime = LocalDateTime.now();
         // Find the most recent valid OTP for this email.
         OtpCode otpCode = otpCodeRepository.findMostRecentValidOtp(otpDto.getEmail(), currentTime)
                 .orElseThrow(() -> new InvalidOtpException("OTP inválido o expirado."));
@@ -203,7 +222,7 @@ public class AuthService {
         // Mark OTP as used to prevent reuse
         otpCode.markAsUsed(); // Use entity's method
         otpCodeRepository.save(otpCode); // Persist the change
-
+*/
         User user = userService.findUserByEmail(otpDto.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado.")); // Should generally not happen here
 

@@ -42,6 +42,7 @@ public class UserProfileDto {
     private String desiredPosition;
 
     // --- Campos Opcionales ---
+    private String maxHoursPerWeek;
     private String cvPath;
     private Boolean isCaregiver;
     private String caregivingHoursPerWeek;
@@ -67,6 +68,8 @@ public class UserProfileDto {
 
     private String dailyTasks;
     private String softSkills;
+
+    private String caregiverStatus;
 
     // Constructor por defecto
     public UserProfileDto() {}
@@ -148,4 +151,28 @@ public class UserProfileDto {
 
     public String getSoftSkills() { return softSkills; }
     public void setSoftSkills(String softSkills) { this.softSkills = softSkills; }
+
+    public Boolean getCaregiver() {
+        return isCaregiver;
+    }
+
+    public void setCaregiver(Boolean caregiver) {
+        isCaregiver = caregiver;
+    }
+
+    public String getCaregiverStatus() {
+        return caregiverStatus;
+    }
+
+    public void setCaregiverStatus(String caregiverStatus) {
+        this.caregiverStatus = caregiverStatus;
+    }
+
+    public String getMaxHoursPerWeek() {
+        return maxHoursPerWeek;
+    }
+
+    public void setMaxHoursPerWeek(String maxHoursPerWeek) {
+        this.maxHoursPerWeek = maxHoursPerWeek;
+    }
 }

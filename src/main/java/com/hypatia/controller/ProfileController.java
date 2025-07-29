@@ -40,7 +40,7 @@ public class ProfileController {
      * Crea o actualiza el perfil del usuario autenticado.
      * Delega toda la lógica de actualización y cálculo al servicio.
      */
-    @PostMapping
+    @PostMapping("/update")
     public ResponseEntity<Map<String, Object>> updateUserProfile(@Valid @RequestBody UserProfileDto profileDto) {
         User user = getAuthenticatedUser();
         Map<String, Object> updatedProfileResponse = userService.updateUserProfile(user, profileDto);
