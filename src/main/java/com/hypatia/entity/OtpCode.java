@@ -44,7 +44,7 @@ import java.time.LocalDateTime;
  * @author hypatIA Development Team
  */
 @Entity
-@Table(name = "otp_codes", indexes = {
+@Table(name = "otp_codes", schema = "public", indexes = {
     @Index(name = "idx_otp_email", columnList = "email"),
     @Index(name = "idx_otp_code", columnList = "code"),
     @Index(name = "idx_otp_expires_at", columnList = "expires_at")

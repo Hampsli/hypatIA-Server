@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "user_profiles")
+@Table(name = "user_profiles",schema = "public")
 public class UserProfile {
 
     @Id

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  * sus respuestas a lo largo del tiempo. Vincula a un Usuario con una Pregunta específica.
  */
 @Entity
-@Table(name = "respuestas_usuario", indexes = {
+@Table(name = "respuestas_usuario", schema = "public", indexes = {
         @Index(name = "idx_respuesta_usuario", columnList = "user_id"),
         @Index(name = "idx_respuesta_pregunta", columnList = "pregunta_id")
 })

@@ -9,7 +9,7 @@ import java.util.List;
  * Es el objeto de más alto nivel en la jerarquía del módulo.
  */
 @Entity
-@Table(name = "cuestionarios")
+@Table(name = "cuestionarios",schema = "public")
 public class Cuestionario {
 
     @Id

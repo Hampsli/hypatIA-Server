@@ -6,7 +6,7 @@ import jakarta.persistence.*;
  * Entidad que representa una opción de respuesta para una pregunta específica.
  */
 @Entity
-@Table(name = "opciones_pregunta")
+@Table(name = "opciones_pregunta",schema = "public")
 public class OpcionPregunta {
 
     @Id

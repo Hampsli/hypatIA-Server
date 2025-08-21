@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * @author hypatIA Development Team
  */
 @Entity
-@Table(name = "ai_interactions", indexes = {
+@Table(name = "ai_interactions", schema = "public",indexes = {
         @Index(name = "idx_ai_user", columnList = "user_id"),
         @Index(name = "idx_ai_type", columnList = "interaction_type"),
         @Index(name = "idx_ai_created", columnList = "created_at"),

@@ -8,7 +8,7 @@ import java.util.List;
  * Cada pregunta está asociada a un Cuestionario y a una Sección específicos.
  */
 @Entity
-@Table(name = "preguntas")
+@Table(name = "preguntas",schema = "public")
 public class Pregunta {
 
     @Id

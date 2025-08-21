@@ -8,7 +8,7 @@ import java.util.List;
  * Agrupa un conjunto de preguntas relacionadas.
  */
 @Entity
-@Table(name = "cuestionario_secciones")
+@Table(name = "cuestionario_secciones", schema = "public")
 public class CuestionarioSeccion {
 
     @Id
