@@ -4,13 +4,16 @@ import com.hypatia.dto.UserProfileDto;
 import com.hypatia.entity.User;
 import com.hypatia.exception.NotFoundException;
 import com.hypatia.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -45,6 +48,25 @@ public class ProfileController {
         User user = getAuthenticatedUser();
         Map<String, Object> updatedProfileResponse = userService.updateUserProfile(user, profileDto);
         return ResponseEntity.ok(updatedProfileResponse);
+    }
+
+    @PostMapping("/cv")
+    public ResponseEntity<String>saveCv(@RequestParam("cv")MultipartFile cv) throws IOException {
+        User user = getAuthenticatedUser();
+        String response= userService.updloadCv(cv,user);
+        if (response.contains("problema")) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } else if (response.contains("logueate")) {
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        } else if (response.equals("Solo se permiten archivos PDF") || response.equals("El archivo debe tener extensión .pdf")) {
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } 
+        return new ResponseEntity<>(response,HttpStatus.OK);
+    }
+
+    @GetMapping("/cv/{id}")
+    public ResponseEntity<byte[]> getCv(@PathVariable Long id){
+        return userService.getCv(id);
     }
 
     /**

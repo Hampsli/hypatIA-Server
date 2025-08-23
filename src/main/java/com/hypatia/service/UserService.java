@@ -5,9 +5,11 @@ import com.hypatia.dto.UserRegistrationDto;
 import com.hypatia.entity.User;
 import com.hypatia.entity.UserProfile;
 import com.hypatia.entity.UserStatus;
+import com.hypatia.exception.NotFoundException;
 import com.hypatia.repository.UserProfileRepository;
 import com.hypatia.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,9 +20,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import com.hypatia.exception.UserNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
 
 
-import java.time.LocalDateTime;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -49,12 +52,8 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con email: " + email));
 
         boolean enabled;
-        if (user.getStatus() == UserStatus.PARTICIPANT || user.getStatus() == UserStatus.COACHING_READY) {
-            enabled = true;
-        } else {
-            // PENDING_ONBOARDING implies they cannot fully log in yet
-            enabled = false;
-        }
+        // PENDING_ONBOARDING implies they cannot fully log in yet
+        enabled = user.getStatus() == UserStatus.PARTICIPANT || user.getStatus() == UserStatus.COACHING_READY;
 
         // Assume these are true by default for healthy accounts
         boolean accountNonExpired = true;
@@ -196,6 +195,46 @@ public class UserService implements UserDetailsService {
         }
 
         return buildProfileResponseMap(updatedProfile);
+    }
+
+    public String updloadCv(MultipartFile cv,User user) throws IOException {
+        if (cv == null) {
+            return "Ha ocurrido un problema procesando tu cv, por favor intentalo de nuevo";
+        }
+        UserProfile profile = getUserProfile(user);
+        if (profile == null) {
+            throw new NotFoundException("no se ha encontrado un perfil de usuario, por favor logueate de nuevo");
+        }
+
+        if (!"application/pdf".equalsIgnoreCase(cv.getContentType())) {
+            return "Solo se permiten archivos PDF";
+        }
+
+        // 3. (Opcional) validar extensión del nombre
+        if (cv.getOriginalFilename()!=null && !cv.getOriginalFilename().toLowerCase().endsWith(".pdf")) {
+            return "El archivo debe tener extensión .pdf";
+        }
+        profile.setCv(cv.getBytes());
+        profile.setCvName(cv.getName());
+        userProfileRepository.save(profile);
+        return "CV guardado correctamente";
+    }
+
+    public ResponseEntity<byte[]>getCv(Long userId){
+        Optional<UserProfile> profileOptional = userProfileRepository.findByUserId(userId);
+        UserProfile profile=new UserProfile();
+        if (profileOptional.isPresent()) {
+            profile=profileOptional.get();
+        }else {
+            throw new NotFoundException("No existe el usuario seleccionado");
+        }
+        if (profile.getCv() == null) {
+            throw new NotFoundException("El usuario seleccionado aun no ha subido un cv a la plataforma");
+        }
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + profile.getCvName() + "\"")
+                .header("Content-Type", "application/pdf")
+                .body(profile.getCv());
     }
 
     /**
