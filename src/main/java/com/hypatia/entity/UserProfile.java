@@ -135,6 +135,16 @@ public class UserProfile {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+
+    @Column(name = "cv",columnDefinition = "BYTEA")
+    private byte[] cv;
+
+    @Column(name = "cv_name")
+    private String cvName;
+
+    @Column(name = "cv_route")
+    private String cvRoute;
+
     public UserProfile() {}
 
     public UserProfile(User user) {
@@ -230,6 +240,31 @@ public class UserProfile {
     public void setCaregiverStatus(String caregiverStatus) {
         this.caregiverStatus = caregiverStatus;
     }
+
+    public byte[] getCv() {
+        return cv;
+    }
+
+    public void setCv(byte[] cv) {
+        this.cv = cv;
+    }
+
+    public String getCvName() {
+        return cvName;
+    }
+
+    public void setCvName(String cvName) {
+        this.cvName = cvName;
+    }
+
+    public String getCvRoute() {
+        return cvRoute;
+    }
+
+    public void setCvRoute(String cvRoute) {
+        this.cvRoute = cvRoute;
+    }
+
     @Override
     public String toString() {
         return "UserProfile{" +
