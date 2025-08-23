@@ -232,4 +232,9 @@ ALTER TABLE user_profiles ADD COLUMN work_hours_per_week VARCHAR(50);
 
 ALTER TABLE user_profiles ADD COLUMN caregiver_status VARCHAR(50);
 
+ALTER TABLE user_profiles ADD COLUMN cv bytea;
+ALTER TABLE user_profiles ADD COLUMN cv_name VARCHAR(50);
+ALTER TABLE user_profiles ADD COLUMN cv_route TEXT
+
+
 -- Fin del script
